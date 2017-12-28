@@ -9,49 +9,99 @@ import {
   Platform,
   StyleSheet,
   Text,
-  View
+  View,
 } from 'react-native';
+import { FBLogin, FBLoginManager } from 'react-native-facebook-login';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' +
-    'Cmd+D or shake for dev menu',
-  android: 'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu',
-});
+
+let context = null;
+
 
 export default class App extends Component<{}> {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      token: "",
+      profile: ""
+    }
+
+    context = this;
+  }
+
   render() {
+
+    const { token, profile } = this.state;
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>
-          Welcome to React Native!
-        </Text>
-        <Text style={styles.instructions}>
-          To get started, edit App.js
-        </Text>
-        <Text style={styles.instructions}>
-          {instructions}
-        </Text>
+
+        <Icon.Button name="facebook" backgroundColor="#3b5998" onPress={() => this.onPressLoginFaceBook()}>
+          <Text style={styles.buttonText}>{`Login with Facebook`}</Text>
+        </Icon.Button>
+
+        <View style={[styles.content]}>
+          <Text>{`Token:  ${token}`}</Text>
+        </View>
+
+        <View style={[styles.content]}>
+          <Text>{`Profile: ${profile}`}</Text>
+        </View>
       </View>
     );
+  }
+
+  onPressLoginFaceBook() {
+
+    try {
+      FBLoginManager.setLoginBehavior(FBLoginManager.LoginBehaviors.Web); // defaults to Native
+
+      FBLoginManager.loginWithPermissions(["email", "user_friends", "public_profile"], function (error, data) {
+        if (!error) {
+          context.setState({ token: data.credentials.token, profile: data.profile })
+          console.log("Login data: ", data);
+
+          // Get user profile 
+          fetch('https://graph.facebook.com/v2.5/me?fields=email,name,first_name,last_name,friends&access_token=' + data.credentials.token)
+            .then((response) => {
+
+              response.json().then(result => {
+                console.log("Login result: ", result);
+              })
+              return response.json()
+            })
+            .then((json) => {
+            })
+            .catch(() => {
+              reject('ERROR')
+            })
+
+        } else {
+          console.log("Error: ", error);
+        }
+      })
+    } catch (error) {
+      console.log("Error: ", error);
+    }
+
   }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#FFFFFF",
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5FCFF',
   },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
+  buttonText: {
+    fontFamily: 'Arial',
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#FFFFFF'
   },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
-  },
+  content: {
+    margin: 10
+  }
+
 });
